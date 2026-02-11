@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard 360 - FMDJ</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --color-vino: #8E1537; --color-azul: #0A2540; --color-amarillo: #FFBB33; }
+        body { font-family: 'Roboto', sans-serif; margin: 0; display: flex; background-color: #F4F6F9; color: #333; }
+        
+        /* Sidebar */
+        .sidebar { width: 240px; background-color: var(--color-azul); color: white; height: 100vh; padding: 20px; position: fixed; }
+        .sidebar h2 { font-size: 22px; margin-bottom: 40px; display: flex; align-items: center; gap: 10px;}
+        .menu-item { padding: 12px 15px; cursor: pointer; display: block; color: #bbb; text-decoration: none; border-radius: 6px; margin-bottom: 5px; transition: 0.3s;}
+        .menu-item:hover { background-color: rgba(255,255,255,0.1); color: white; }
+        .menu-item.active { background-color: var(--color-vino); color: white; font-weight: 500; }
+
+        /* Contenido */
+        .main-content { margin-left: 280px; padding: 30px; width: calc(100% - 340px); }
+        
+        /* Barra Top */
+        .top-bar { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; gap: 15px; align-items: center; margin-bottom: 25px;}
+        select { padding: 10px; border: 1px solid #ddd; border-radius: 5px; flex-grow: 1; font-size: 14px;}
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: 500; transition: 0.2s; color: white;}
+        .btn-ver { background-color: var(--color-vino); }
+        .btn-ia { background-color: #6f42c1; } /* Morado para IA */
+        .btn-pdf { background-color: var(--color-azul); }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* Tarjetas Scores */
+        .score-row { display: flex; gap: 20px; margin-bottom: 25px; }
+        .card-score { background: white; padding: 20px; border-radius: 8px; flex: 1; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 5px solid var(--color-azul); display: flex; flex-direction: column; justify-content: center;}
+        .card-score.vino { border-left-color: var(--color-vino); }
+        .big-num { font-size: 38px; font-weight: 700; color: #333; }
+        .sub-label { font-size: 13px; text-transform: uppercase; color: #666; letter-spacing: 0.5px; margin-bottom: 5px;}
+
+        /* Información General */
+        .info-card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 25px; border-top: 3px solid var(--color-vino); }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px 40px; }
+        .info-item label { display: block; font-size: 11px; color: #888; font-weight: 700; margin-bottom: 4px; text-transform: uppercase;}
+        .info-item span { font-size: 15px; font-weight: 500; color: #222; }
+
+        /* Tabla Detalle */
+        .table-card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .table-title { font-size: 16px; font-weight: 700; color: var(--color-azul); margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;}
+        
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 12px; color: #666; font-weight: 600; border-bottom: 2px solid #eee; }
+        td { padding: 12px; border-bottom: 1px solid #f5f5f5; color: #444; }
+        tr:last-child td { border-bottom: none; }
+        .col-num { text-align: center; width: 50px; }
+        .def-text { font-size: 12px; color: #888; margin-top: 4px; font-style: italic; }
+
+        /* IA Box */
+        .ia-box { background: linear-gradient(135deg, #f3e5f5 0%, #fff 100%); border: 1px solid #e1bee7; padding: 20px; border-radius: 8px; margin-bottom: 25px; display: none;}
+        .ia-header { display: flex; align-items: center; gap: 10px; color: #6f42c1; font-weight: bold; margin-bottom: 10px; }
+
+        /* Gráficos */
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px; }
+        .chart-container { background: white; padding: 20px; border-radius: 8px; height: 320px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
+        /* Agrega esto en tu sección <style> */
+        .sidebar-logo {
+        width: 130px;       /* Ancho fijo ideal para la barra */
+        height: auto;       /* Mantiene la proporción para que no se estire */
+        border-radius: 10px;/* Opcional: esquinas redondeadas suaves */
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Opcional: una sombra suave para que resalte */
+        background: white;  /* Fondo blanco por si el logo tiene transparencias */
+        padding: 5px;       /* Un pequeño margen interno blanco */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <img src="logo.jpeg" alt="Logo FMDJ" class="sidebar-logo">
+        </div>
+
+        <a class="menu-item active">📊 Reporte Individual</a>
+        <a class="menu-item" onclick="alert('Diccionario cargado desde base de datos')">📘 Diccionario</a>
+        <a class="menu-item" onclick="alert('Panel de Administración en desarrollo')">⚙️ Configuración</a>
+    </div>
+
+    <div class="main-content" id="reporte-pdf">
+        
+        <div class="top-bar" data-html2canvas-ignore="true">
+            <select id="selEmpleado"><option>Cargando colaboradores...</option></select>
+            <button class="btn btn-ver" onclick="generarReporte()">🔄 Ver Reporte</button>
+            <button class="btn btn-ia" onclick="activarIA()">✨ Análisis IA</button>
+            <button class="btn btn-pdf" onclick="descargarPDF()">🖨️ PDF</button>
+        </div>
+
+        <div class="score-row">
+            <div class="card-score vino">
+                <div class="sub-label">Nota Final Ponderada</div>
+                <div class="big-num" id="lblNota">-- / 100</div>
+            </div>
+            <div class="card-score">
+                <div class="sub-label">Nivel de Desempeño</div>
+                <div class="big-num" id="lblNivel" style="font-size: 24px;">--</div>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="table-title">INFORMACIÓN GENERAL</div>
+            <div class="info-grid">
+                <div class="info-item"><label>NOMBRE</label><span id="txtNombre">--</span></div>
+                <div class="info-item"><label>CARGO</label><span id="txtCargo">--</span></div>
+                <div class="info-item"><label>ÁREA / DEPARTAMENTO</label><span id="txtArea">--</span></div>
+                <div class="info-item"><label>FECHA DE REPORTE</label><span id="txtFecha">--</span></div>
+            </div>
+        </div>
+
+        <div id="panelIA" class="ia-box">
+            <div class="ia-header">✨ Análisis de Valor (Generado por IA)</div>
+            <p id="txtIA" style="line-height: 1.6;">Cargando análisis...</p>
+        </div>
+
+        <div class="table-card">
+            <div class="table-title">RESULTADOS POR COMPETENCIA Y FUNCIÓN</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">COMPETENCIA / ITEM</th>
+                        <th class="col-num">Auto</th>
+                        <th class="col-num">Jefe</th>
+                        <th class="col-num">Par</th>
+                        <th class="col-num">Sub</th>
+                        <th class="col-num">Cli</th>
+                        <th class="col-num" style="background: #f9f9f9;">PROM</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaBody">
+                    <tr><td colspan="7" style="text-align:center; padding:20px;">Selecciona un colaborador para ver detalles.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-container">
+                <div class="sub-label" style="text-align:center; margin-bottom:10px;">VISIÓN 360° (Radar)</div>
+                <canvas id="chartRadar"></canvas>
+            </div>
+            <div class="chart-container">
+                <div class="sub-label" style="text-align:center; margin-bottom:10px;">BRECHAS DE PERCEPCIÓN</div>
+                <canvas id="chartBarras"></canvas>
+            </div>
+        </div>
+
+        <div style="margin-top: 50px; display: flex; justify-content: space-between; padding: 0 50px;">
+            <div style="border-top: 1px solid #333; width: 40%; text-align: center; padding-top: 10px; font-size: 12px; font-weight: bold;">FIRMA COLABORADOR</div>
+            <div style="border-top: 1px solid #333; width: 40%; text-align: center; padding-top: 10px; font-size: 12px; font-weight: bold;">FIRMA TALENTO HUMANO</div>
+        </div>
+
+    </div>
+
+    <script>
+        const URL_API = "https://script.google.com/macros/s/AKfycbyY7vwb47-qvgOVke-i1TjP9EkZ9HCGEUHbZ7KFG4vYL8ltHi4WBnay_RhK1qdY79DdIQ/exec"; // <--- ⚠️ TU URL AQUÍ
+        let datosGlobales = null; // Para guardar lo que llega y usarlo en la IA
+
+        // Inicialización
+        window.onload = () => {
+            fetch(URL_API, { method: "POST", body: JSON.stringify({accion: "listarEvaluados"}) })
+            .then(r => r.json())
+            .then(data => {
+                const sel = document.getElementById('selEmpleado');
+                sel.innerHTML = "";
+                data.lista.forEach(email => {
+                    let opt = document.createElement('option');
+                    opt.value = email;
+                    opt.innerText = email;
+                    sel.appendChild(opt);
+                });
+            });
+        };
+
+        // Función Principal: Ver Reporte (ACTUALIZADA)
+        async function generarReporte() {
+            const email = document.getElementById('selEmpleado').value;
+            const btn = document.querySelector('.btn-ver');
+            btn.innerText = "⏳ Cargando...";
+            
+            try {
+                const resp = await fetch(URL_API, { 
+                    method: "POST", 
+                    body: JSON.stringify({accion: "obtenerReporte", email: email}) 
+                });
+                
+                const json = await resp.json();
+
+                // --- BLOQUE DE SEGURIDAD NUEVO ---
+                if (json.status === "error") {
+                    alert("⚠️ ERROR DEL SISTEMA:\n" + json.mensaje);
+                    console.error("Detalle del error:", json);
+                    btn.innerText = "🔄 Ver Reporte";
+                    return; // Detenemos todo aquí
+                }
+                // ---------------------------------
+
+                datosGlobales = json; // Guardamos para la IA
+
+                // 1. Llenar Header y Info
+                if (json.info) { // Verificamos que 'info' exista
+                    document.getElementById('lblNota').innerText = json.notaFinal + " / 100";
+                    document.getElementById('lblNivel').innerText = json.nivel;
+                    
+                    document.getElementById('txtNombre').innerText = json.info.nombre;
+                    document.getElementById('txtCargo').innerText = json.info.cargo;
+                    document.getElementById('txtArea').innerText = json.info.area;
+                    document.getElementById('txtFecha').innerText = json.info.fecha;
+                }
+
+                // 2. Llenar Tabla
+                const tbody = document.getElementById('tablaBody');
+                tbody.innerHTML = "";
+                if (json.tabla) {
+                    json.tabla.forEach(row => {
+                        let html = `
+                            <tr>
+                                <td>
+                                    <div style="font-weight:500;">${row.competencia}</div>
+                                    <div class="def-text">${row.definicion}</div>
+                                </td>
+                                <td class="col-num">${row.auto}</td>
+                                <td class="col-num">${row.jefe}</td>
+                                <td class="col-num">${row.par}</td>
+                                <td class="col-num">${row.sub}</td>
+                                <td class="col-num">${row.cli}</td>
+                                <td class="col-num" style="font-weight:bold; background:#f9f9f9;">${row.promedio}</td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += html;
+                    });
+                }
+
+                // 3. Gráficos
+                if (json.radar && json.brechas) {
+                    renderCharts(json.tabla, json.brechas);
+                }
+                
+                document.getElementById('panelIA').style.display = 'none'; // Ocultar IA anterior
+
+            } catch (e) {
+                console.error(e);
+                alert("Error de conexión con el servidor.");
+            } finally {
+                btn.innerText = "🔄 Ver Reporte";
+            }
+        }
+
+        // Función IA
+        async function activarIA() {
+            if(!datosGlobales) return alert("Primero carga un reporte.");
+            
+            const panel = document.getElementById('panelIA');
+            const txt = document.getElementById('txtIA');
+            panel.style.display = 'block';
+            txt.innerText = "🤔 La Inteligencia Artificial está analizando los resultados...";
+            
+            const resp = await fetch(URL_API, {
+                method: "POST",
+                body: JSON.stringify({accion: "analizarConIA", datosReporte: datosGlobales})
+            });
+            const json = await resp.json();
+            txt.innerText = json.analisis;
+        }
+
+        // Gráficos
+        // --- FUNCIÓN DE GRÁFICOS ACTUALIZADA (Radar Multilínea) ---
+        let radarChart, barChart;
+
+        function renderCharts(tablaData, brechasData) {
+            // 1. PREPARAR DATOS DEL RADAR
+            // Extraemos las etiquetas (Competencias)
+            const etiquetas = tablaData.map(t => t.competencia.substring(0, 20) + "..."); // Acortamos nombres largos
+            
+            // Función auxiliar para limpiar datos (convertir "-" en null)
+            const limpiar = (valor) => (valor === "-" || valor === "") ? null : parseFloat(valor);
+
+            const dataAuto = tablaData.map(t => limpiar(t.auto));
+            const dataJefe = tablaData.map(t => limpiar(t.jefe));
+            const dataPar  = tablaData.map(t => limpiar(t.par));
+            const dataCli  = tablaData.map(t => limpiar(t.cli)); // Cliente Interno
+
+            // 2. DIBUJAR RADAR (VISIÓN 360)
+            const ctxRadar = document.getElementById('chartRadar');
+            if(radarChart) radarChart.destroy();
+
+            radarChart = new Chart(ctxRadar, {
+                type: 'radar',
+                data: {
+                    labels: etiquetas,
+                    datasets: [
+                        {
+                            label: 'Autoevaluación',
+                            data: dataAuto,
+                            borderColor: '#FFBB33', // Amarillo
+                            backgroundColor: 'rgba(255, 187, 51, 0.2)',
+                            pointBackgroundColor: '#FFBB33',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Jefe Inmediato',
+                            data: dataJefe,
+                            borderColor: '#0A2540', // Azul FMDJ
+                            backgroundColor: 'rgba(10, 37, 64, 0.1)',
+                            pointBackgroundColor: '#0A2540',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Par / Colega',
+                            data: dataPar,
+                            borderColor: '#8E1537', // Vino FMDJ
+                            backgroundColor: 'rgba(142, 21, 55, 0.1)',
+                            pointBackgroundColor: '#8E1537',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Cliente Interno',
+                            data: dataCli,
+                            borderColor: '#008080', // Verde Azulado (Teal) para diferenciar
+                            backgroundColor: 'rgba(0, 128, 128, 0.1)',
+                            pointBackgroundColor: '#008080',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            min: 0,
+                            max: 5,
+                            ticks: { stepSize: 1, backdropColor: 'transparent' }, // Limpia el fondo de los números
+                            pointLabels: { font: { size: 11 } } // Tamaño letra competencias
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } }
+                    }
+                }
+            });
+
+            // 3. DIBUJAR BARRAS (BRECHAS)
+            const ctxBarras = document.getElementById('chartBarras');
+            if(barChart) barChart.destroy();
+
+            barChart = new Chart(ctxBarras, {
+                type: 'bar',
+                data: {
+                    labels: ['Autoevaluación', 'Jefe', 'Pares'],
+                    datasets: [{
+                        label: 'Promedio General',
+                        data: [
+                            brechasData["Autoevaluación"], 
+                            brechasData["Jefe Inmediato"], 
+                            brechasData["Par"]
+                        ],
+                        backgroundColor: ['#FFBB33', '#0A2540', '#8E1537'],
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, max: 5 } },
+                    plugins: { legend: { display: false } } // Ocultamos leyenda porque ya los colores lo dicen
+                }
+            });
+        }
+
+        function descargarPDF() {
+            const el = document.getElementById('reporte-pdf');
+            html2pdf().set({ margin: 10, filename: 'Evaluacion360.pdf' }).from(el).save();
+        }
+    </script>
+</body>
+</html>
